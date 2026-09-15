@@ -1,0 +1,10 @@
+node_modules/
+node_modules
+dist/
+dist-github/
+.env
+.env.*
+.sites-runtime/
+.DS_Store
+*.zip
+test-results/

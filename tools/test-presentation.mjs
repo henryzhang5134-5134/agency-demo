@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const js=ts.transpileModule(fs.readFileSync(new URL('../src/presentation.ts',import.meta.url),'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText;
+const {ChatDirector,VideoDirector}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+function node(){return{style:{},children:[],offsetTop:0,append(...x){this.children.push(...x)},remove(){},replaceChildren(){this.children=[]},setAttribute(){}};}
+const vs=[0,1].map(()=>({...node(),src:'',poster:'',readyState:4,currentTime:0,paused:true,events:{},pause(){this.paused=true},play(){this.paused=false;return Promise.resolve()},load(){},getAttribute(k){return this[k]},removeAttribute(k){this[k]=''},addEventListener(k,fn){this.events[k]=fn}}));
+globalThis.document={createElement:node,querySelector:s=>vs[s.endsWith('-a')?0:1]};
+const fx={animate:()=>Promise.resolve()},c=new ChatDirector(node(),fx);
+c.tick(9);assert.equal(c.snapshot().helps,0,'Observation is not a mistake');
+c.invalid();c.tick(7.9);assert.equal(c.snapshot().helps,0);c.picked();c.tick(1);assert.equal(c.snapshot().helps,0,'Successful pickup cancels help');
+for(let n=0;n<3;n++){c.invalid();c.tick(8.1)}assert.equal(c.snapshot().helps,2,'Help capped at two');
+for(let g=0;g<3;g++){for(let p=0;p<3;p++){c.picked();c.tick(.45)}c.match(31-g,32)}assert.ok(c.snapshot().fired.includes('fast'));
+c.match(10,32);assert.ok(!c.snapshot().fired.includes('thirty'));c.match(9,32);assert.ok(c.snapshot().fired.includes('thirty'));
+for(let n=0;n<12;n++)c.tick(31);assert.equal(c.snapshot().used.length,6);assert.equal(new Set(c.snapshot().used).size,6);
+const restored=new ChatDirector(node(),fx);restored.restore(c.snapshot());assert.deepEqual(restored.snapshot(),c.snapshot());
+const history=node(),persistent=new ChatDirector(history,fx);persistent.restore({used:[0,1,2,3,4,5],fired:[],helps:0});
+persistent.pair('白熊说话','玩家回应',true);persistent.tick(2.2);assert.equal(history.children.length,2);
+persistent.tick(120);assert.equal(history.children.length,2,'Conversation stays until pushed beyond the clipping edge, not a timer');
+persistent.pair('先说一句','这一句也有回应',true);persistent.pair('新的提醒','新的回应',true);
+assert.equal(history.children.length,5,'Priority dialogue must flush the pending player reply');
+persistent.enterStory();assert.equal(history.children.length,6,'Entering the ending must not swallow the final player reply');
+const v=new VideoDirector({hidden:true},()=>0),sleep=()=>new Promise(r=>setTimeout(r,220));v.start(false);assert.equal(v.report().clip,'arrival');vs[0].currentTime=10.9;vs[0].events.ended();assert.equal(v.report().phase,'waiting');assert.ok(v.report().wait>=5&&v.report().wait<=10);let tail=v.report().wait;v.setPaused(true);v.tick(20);assert.equal(v.report().wait,tail);v.setPaused(false);v.tick(11);await sleep();assert.equal(v.report().clip,'idle-a');vs[1].events.ended();v.tick(11);await sleep();assert.equal(v.report().clip,'idle-b');v.requestPraise();vs[0].events.ended();v.tick(11);await sleep();assert.equal(v.report().clip,'praise');assert.equal(v.report().praisePending,false);vs[1].events.ended();v.tick(11);await sleep();assert.equal(v.report().clip,'idle-a');
+const smiling=new VideoDirector({hidden:true},()=>.99);smiling.start(false);vs[0].events.ended();smiling.tick(11);await sleep();assert.equal(smiling.report().clip,'smile');vs[1].events.ended();assert.ok(smiling.report().wait>=5&&smiling.report().wait<=10);smiling.tick(11);await sleep();assert.equal(smiling.report().clip,'idle-b','No immediate repeat of smile');
+const resume=new VideoDirector({hidden:true});resume.start(true);assert.equal(resume.report().phase,'waiting');assert.equal(vs[0].poster,'/video/rest-poster.jpg');
+console.log('PASS: tail-frame waits / three random idle clips including smile / no immediate repeats / praise priority / pause / resume, persistent paired chat, bounded help, fast-chain and 30% triggers.');

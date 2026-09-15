@@ -1,0 +1,19 @@
+# 寻物事务所 · 游戏页
+
+《寻找委托书》首案试玩，使用 Three.js、Rapier、TypeScript 与 Vite。2026-09-15 确认的棕色旅行箱版本：96 件物品／32 组，白熊视频演出、直播式对白、弹性收集与三消动效。
+
+## 本地运行
+
+使用 Node.js 24，首次运行 `npm ci`，再运行 `npm run dev`。
+
+`npm run build` 构建本地／域名根路径版本；`npm run build:github` 构建 `/agency-demo/` 子路径版本，输出 `dist-github/`。发布适配不更改画面、模型大小、物理参数或本地存档。
+
+## GitHub Pages
+
+仓库：`henryzhang5134-5134/agency-demo`。在 Settings → Pages 中将 Source 设为 GitHub Actions，上传到 main 后自动检查、构建和发布。部署成功后，试玩地址为 https://henryzhang5134-5134.github.io/agency-demo/ 。此处是配置目标，是否已上线请以 Actions 和 Pages 状态为准。
+
+首页展示入口为 `home.html`。进度仅保存在当前浏览器，不会同步到其他人的设备。首次点击后才可开启声音，视频加载速度取决于网络。0:00 后可继续游戏。
+
+## 素材与发布范围
+
+公开试玩需要公开运行用图片、视频和模型；仓库不包含桌面原始工作文件、个人工作台文档、登录凭据或旧平台发布配置。素材由项目提供者提供用于此 Demo；公开可访问不代表授权第三方转载或商用。声音为代码合成试听版本。本项目是演示原型，不涉及真实钱包资产或交易。

@@ -1,0 +1,23 @@
+{
+  "name": "lost-and-found-first-case",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "build:github": "tsc --noEmit && vite build --mode github",
+    "test": "node --experimental-strip-types tools/test-rules.mjs",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.1",
+    "three": "^0.185.0"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "^4.5.0",
+    "@types/three": "^0.185.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.7"
+  }
+}

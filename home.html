@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+ <meta name="theme-color" content="#69baf1">
+ <meta name="description" content="寻物事务所：接下一份委托，找回你在意的。">
+ <title>寻物事务所 · 今日营业中</title>
+</head>
+<body>
+ <div id="home-shell"><main id="home" aria-label="寻物事务所主页">
+  <div id="scene" aria-hidden="true">
+   <img class="sky" src="/home/sky.webp" alt="">
+   <div class="layer clouds" data-depth="2">
+    <img class="cloud cloud-a" src="/home/cloud.webp" alt=""><img class="cloud cloud-b" src="/home/cloud.webp" alt="">
+    <img class="cloud cloud-c" src="/home/cloud.webp" alt=""><img class="cloud cloud-d" src="/home/cloud.webp" alt="">
+   </div>
+   <div class="layer" data-depth="3"><img class="city scene-image" src="/home/city.webp" alt=""></div>
+   <div class="layer" data-depth="5"><img class="street back-trees scene-image" src="/home/street.webp" alt=""></div>
+   <div class="layer" data-depth="8"><img class="street road scene-image" src="/home/street.webp" alt=""></div>
+   <div class="layer" data-depth="8"><img class="agency scene-image" src="/home/agency.webp" alt=""></div>
+   <div class="layer" data-depth="10"><img class="left-tree scene-image" src="/home/tree.webp" alt=""><img class="lamp scene-image" src="/home/lamp.webp" alt=""></div>
+   <div class="layer" data-depth="19"><img class="foliage foliage-left scene-image" src="/home/foliage.webp" alt=""><img class="foliage foliage-right scene-image" src="/home/foliage.webp" alt=""></div>
+  </div>
+  <div id="fixed-ui">
+   <button class="settings icon-only" data-panel="settings" aria-label="设置"><img src="/home/settings.png" alt=""></button>
+   <section class="wallet-bar" aria-label="游戏资产">
+    <span class="balance"><img src="/home/coin.png" alt="金币"><b id="coins">1,280</b></span>
+    <span class="balance gems"><img src="/home/gem.png" alt="钻石"><b>36</b></span>
+    <button class="exchange" data-panel="exchange">兑换</button>
+   </section>
+   <div class="business"><i></i>今日营业中</div>
+   <nav class="side-nav left-nav" aria-label="事务所记录">
+    <button data-panel="archive"><img src="/home/archive.png" alt=""><span>档案</span></button>
+    <button data-panel="achievement"><img src="/home/achievement.png" alt=""><span>成就</span></button>
+    <button data-panel="ranking"><img src="/home/ranking.png" alt=""><span>排名</span></button>
+   </nav>
+   <nav class="side-nav right-nav" aria-label="每日与装扮">
+    <button data-panel="checkin"><img src="/home/checkin.png" alt=""><span>签到</span></button>
+    <button data-panel="tasks"><img src="/home/tasks.png" alt=""><span>每日任务</span></button>
+    <button data-panel="dress"><img src="/home/dress.png" alt=""><span>装扮</span></button>
+   </nav>
+   <div class="entry-cards">
+    <button class="commission-card" data-panel="commissions">
+     <span class="folder-tab">待接取</span>
+     <img class="letter-icon" src="/home/letter.png" alt="">
+     <span class="card-copy"><strong>接受每日委托</strong><small>找回失物，完成今日委托</small></span>
+     <span class="go-arrow" aria-hidden="true">›</span>
+    </button>
+    <button class="challenge-card" data-panel="challenge">
+     <span class="bolt" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13.5 2 4 13.5h7L10.5 22 20 10.5h-7L13.5 2Z"/></svg></span>
+     <span class="card-copy"><strong>挑战模式</strong><small>每日2次 · 今日剩余2次</small></span>
+     <span class="challenge-count">2/2</span>
+    </button>
+   </div>
+  </div>
+  <div id="home-toast" role="status" aria-live="polite"></div>
+ </main></div>
+ <button id="tilt-preview" aria-label="模拟手机倾斜"><span aria-hidden="true">↔</span> 模拟倾斜</button>
+ <dialog id="home-dialog"><button id="close-panel" aria-label="关闭">×</button><div id="panel-content"></div></dialog>
+ <script type="module" src="/src/home.ts"></script>
+</body>
+</html>
