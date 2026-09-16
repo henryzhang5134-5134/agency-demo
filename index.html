@@ -1,14 +1,16 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#fae8d0"><meta name="description" content="和白熊一起来看事务所，整理旅行箱，找出那份神秘委托书。"><title>寻找委托书 · 寻物事务所</title></head>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#fae8d0"><meta name="description" content="《钱包去哪了》：和小白熊整理旅行箱，找回钱包里的委托书，开启你的经营故事。"><title>钱包去哪了</title><link rel="preload" as="image" href="/video/completion-poster.jpg"><link rel="preload" as="image" href="/art/game-v2/welcome-backplate-v3.png"><link rel="preload" as="image" href="/art/game-v2/wallet-commission.png"></head>
 <body><main id="shell"><div id="game">
  <div id="video-stage" aria-label="白熊委托人"><video id="bear-video-a" src="/video/arrival.mp4" poster="/video/arrival-poster.jpg" preload="auto" muted playsinline disablepictureinpicture></video><video id="bear-video-b" preload="none" muted playsinline disablepictureinpicture></video><button id="video-retry" hidden>轻点继续白熊动画</button></div>
  <div id="ground-art" aria-hidden="true"></div>
- <header id="header"><button id="pause" aria-label="暂停游戏"><img src="/art/pause.png" alt=""></button><h1>寻找委托书</h1><span class="time" id="timer" aria-label="倒计时">9:59</span></header>
+ <header id="header"><button id="pause" aria-label="暂停游戏"><img src="/art/pause.png" alt=""></button><h1>委托书去哪了</h1><span class="time" id="timer" aria-label="倒计时">9:59</span></header>
+ <button id="demo-complete" type="button" aria-label="一键通关，Demo 演示" title="一键通关 · Demo 演示" disabled>通</button>
+ <button id="demo-restart" type="button" aria-label="一键重开本局，保留已获奖励" title="一键重开 · Demo 演示" disabled>重</button>
  <div id="speech" role="log" aria-label="白熊与玩家的对话" aria-live="polite" aria-relevant="additions"><div id="chat-stream"></div></div>
  <div id="like-stream" aria-hidden="true"></div>
  <div id="case-art"></div><div id="pile" aria-label="旅行箱里的三消物件"></div><div id="case-front"></div>
  <div id="hint" role="status">点选 3 台相机，试试整理。</div>
- <section id="tray" aria-label="七格暂存槽和委托书目标格"><div id="slots"></div><button id="target" aria-label="目标：完成整理后解锁委托书"><img id="commission-thumb" src="/art/game-v2/commission.webp" alt="委托书"><span id="target-status">待解锁</span></button><p id="progress">已归好 <b>0 / 32</b> 组</p></section>
+ <section id="tray" aria-label="七格暂存槽和任务目标格"><div id="slots"></div><div id="target" role="status" aria-label="目标：找到小白熊的钱包和里面的委托书"><img id="commission-thumb" src="/art/game-v2/wallet-commission.png" alt="钱包里的委托书"><span id="target-status">寻找中</span></div><p id="progress">已归好 <b>0 / 32</b> 组</p></section>
  <nav id="props" aria-label="后续开放的道具"><button class="prop remove" aria-label="移出，后续开放" aria-disabled="true"></button><button class="prop match" aria-label="凑齐，后续开放" aria-disabled="true"></button><button class="prop shuffle" aria-label="打乱，后续开放" aria-disabled="true"></button></nav>
  <div id="toast" role="status"></div>
  <div id="door-light"></div>

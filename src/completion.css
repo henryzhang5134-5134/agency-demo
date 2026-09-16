@@ -1,0 +1,52 @@
+#header{width:500px}
+#header h1{font-size:29px;margin-left:23px;letter-spacing:1px}
+#header .time{right:21px;font-variant-numeric:tabular-nums}
+#demo-complete{position:absolute;right:28px;top:76px;width:54px;height:54px;border-radius:17px;border:2px solid #b9884f;background:linear-gradient(#fff2c8,#efc47b);box-shadow:0 4px 0 #9f703d50,0 5px 9px #53341d26,inset 0 2px #fff9e6;color:#71512d;font-size:28px;font-weight:800;display:grid;place-items:center;padding:0;z-index:8}
+#demo-complete::before{content:"";position:absolute;inset:-10px}
+#demo-complete:disabled{opacity:.5;cursor:default}
+.completing #speech,.completing #like-stream{opacity:0;transition:opacity .2s;pointer-events:none}
+.completing #pile,.completing #props,.completing #header,.completing #demo-complete{pointer-events:none}
+#target{pointer-events:none;text-align:center}
+#target.delivered #commission-thumb{opacity:0}
+#completion-overlay,#welcome-overlay{position:absolute;inset:0;z-index:38;overflow:hidden}
+#completion-overlay{pointer-events:none}
+.completion-shade{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 48%,#3b211727,#2415089c);transition:opacity .45s}
+.completion-halo{position:absolute;left:25px;top:420px;width:700px;height:700px;background:radial-gradient(circle,#ffe69c99,transparent 65%);transition:opacity .45s}
+.completion-rays{position:absolute;inset:0;border-radius:50%;background:repeating-conic-gradient(from 0deg,#ffe6a685 0deg 9deg,transparent 9deg 24deg);mask-image:radial-gradient(circle,black 12%,#000a 38%,transparent 69%);-webkit-mask-image:radial-gradient(circle,black 12%,#000a 38%,transparent 69%)}
+.completion-heading{position:absolute;top:489px;width:100%;text-align:center;color:#fff6d5;text-shadow:0 3px 12px #4b2c14;transition:opacity .3s}
+.completion-heading span{font-size:23px;letter-spacing:7px;color:#ffdc81}
+.completion-heading h2{font-size:43px;margin:12px 0}
+.completion-prize{position:absolute;left:225px;top:620px;width:300px;height:320px;filter:drop-shadow(0 16px 16px #4e28054d);will-change:transform}
+.completion-prize img{width:100%;height:100%;object-fit:contain}
+.completion-caption{position:absolute;top:970px;width:100%;margin:0;text-align:center;font-size:24px;color:#fff2cc;letter-spacing:2px;transition:opacity .3s}
+.completion-confetti{position:absolute;top:0;left:0;width:12px;height:24px;border-radius:3px;pointer-events:none;z-index:2;box-shadow:0 1px 2px #4a2b1026}
+.completion-confetti:nth-of-type(3n){width:9px;height:30px;border-radius:6px}
+#welcome-overlay{display:flex;align-items:center;justify-content:center;background:#30221880;backdrop-filter:blur(1.5px);z-index:44}
+.welcome-aura{position:absolute;left:-200px;top:250px;width:1150px;height:1150px;pointer-events:none;background:radial-gradient(circle,#ffdc7e69 15%,#ffd27a1f 43%,transparent 68%)}
+.welcome-rays{position:absolute;inset:0;border-radius:50%;background:repeating-conic-gradient(from 9deg,#ffe5a873 0deg 8deg,transparent 8deg 22.5deg);mask-image:radial-gradient(circle,transparent 12%,black 29%,#0008 47%,transparent 69%);-webkit-mask-image:radial-gradient(circle,transparent 12%,black 29%,#0008 47%,transparent 69%);will-change:transform}
+.welcome-card{position:relative;width:680px;height:906.67px;flex:none;padding:0;text-align:center;border:0;color:#583923;background:none;box-shadow:none;outline:none;z-index:3;filter:drop-shadow(0 22px 16px #21140859);transform-origin:50% 55%}
+.welcome-backplate{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;mask:url('/art/game-v2/welcome-backplate-v3-mask.svg') center/100% 100% no-repeat;-webkit-mask:url('/art/game-v2/welcome-backplate-v3-mask.svg') center/100% 100% no-repeat}
+.welcome-content{position:absolute;left:111px;right:111px;top:214px}
+.welcome-congrats{font-size:25px;line-height:34px;letter-spacing:2px;margin:0 0 9px;color:#966732;font-weight:650;text-shadow:0 1px #fff7df}
+.welcome-card h2{font-size:45px;line-height:1.2;margin:0;font-weight:900;letter-spacing:2px;color:#225f59;text-shadow:0 2px #fff8e5}
+.welcome-intro{font-size:23px;line-height:1.4;margin:14px 0 25px;color:#7a5737}
+.welcome-coins{padding:14px 22px;border:2px solid #d9ad62;border-radius:20px;background:linear-gradient(125deg,#fff6d9df,#ffe1a1eb);display:flex;gap:20px;align-items:center;justify-content:center;text-align:left;box-shadow:0 4px 0 #c3954e30,inset 0 2px #fff9ec}
+.welcome-coins img{width:70px;height:70px;object-fit:contain;clip-path:ellipse(44% 44% at 50% 50%);mix-blend-mode:multiply}
+.welcome-coins span{display:block;font-size:23px;line-height:30px;color:#8c6132}
+.welcome-coins strong{font-size:44px;line-height:1.1;color:#996117;font-variant-numeric:tabular-nums;text-shadow:0 1px #fff0c9}
+.welcome-coins small{font-size:24px;font-weight:600}
+.welcome-coupon{position:relative;display:flex;align-items:center;text-align:left;margin:18px 0 0;background:linear-gradient(125deg,#ed7950,#d94f39);border:2px solid #b84b32;border-radius:20px;min-height:111px;box-shadow:0 4px 0 #a8453438,inset 0 2px #ffc195;color:#fff9ed;text-shadow:0 1px 1px #9d392b45}
+.welcome-coupon::before,.welcome-coupon::after{content:"";position:absolute;top:48px;width:14px;height:14px;border-radius:50%;background:#fff0d0;box-shadow:inset 0 1px 2px #9c492b40}
+.welcome-coupon::before{left:-8px}.welcome-coupon::after{right:-8px}
+.coupon-value{width:124px;flex:none;text-align:center;font-size:70px;line-height:1;color:#fffaf0;font-weight:800;border-right:2px dashed #ffd0b9c9}
+.coupon-value small{font-size:32px;margin-right:5px}
+.welcome-coupon>div+div{padding-left:22px}
+.welcome-coupon span{display:block;font-size:22px;color:#fff0df;margin-bottom:7px}
+.welcome-coupon strong{display:block;font-size:28px;color:#ffffff}
+.welcome-note{font-size:19px;line-height:27px;margin:15px 0 20px;color:#856444}
+.welcome-home{display:block;width:100%;border-radius:22px;border:2px solid #285c58;background:linear-gradient(#40958f,#23766f);color:#fff3d2;box-shadow:0 6px 0 #174d46,0 9px 12px #365f352b,inset 0 2px 0 #ffffff59,inset 0 -3px 0 #15584a35;padding:17px;font-size:29px;font-weight:750;letter-spacing:1px;text-shadow:0 2px #1c635b}
+.welcome-home:active{transform:translateY(3px);box-shadow:0 3px 0 #174d46,inset 0 2px #ffffff40}
+.welcome-replay{background:none;color:#7e5b37;padding:19px 20px 5px;font-size:22px}
+.welcome-fallback{font-size:18px;line-height:1.4;color:#795639;margin:8px 0 0}
+#welcome-overlay .completion-confetti{z-index:4;box-shadow:0 2px 3px #28160833}
+@media(prefers-reduced-motion:reduce){.completion-prize,.welcome-rays{will-change:auto}}

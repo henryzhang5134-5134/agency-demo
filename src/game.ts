@@ -1,5 +1,7 @@
 import './game.css';
 import './game-video-layout.css';
+import './completion.css';
+import './task-introduction.css';
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -9,6 +11,9 @@ import {KINDS,initialState,collect,canTakeKey as ruleCanTakeKey,spawnKinds} from
 import type {Kind,State} from './rules';
 import {GameAudio} from './audio';
 import {Effects,VideoDirector,ChatDirector} from './presentation';
+import {CompletionSequence} from './completion';
+import {TaskIntroduction} from './task-introduction';
+import {welcomeProfile} from './completion-rules';
 import {countdown,LIKE_MILESTONES,sizeBoost} from './commission-rules';
 import {BASKET_KINDS,BASKET_TOTAL,BASKET_GRAVITY,BASKET_STEP,BASKET_SETTLE_STEPS,createBasketPlan,validBasketPlan,normalizeBasket,basketBoundaries,spawnBasketItem,createBasketBody,nudgeBasketNeighbours,recoverBasketOutliers} from './basket-preset';
 import type {BasketSpec} from './basket-preset';
@@ -36,6 +41,18 @@ let scale=1,lastInput=performance.now(),speechUntil=0,firstTriple=false,cameraSp
 let elapsed=0,last=performance.now(),accumulator=0,idleHint:Item|undefined,hintUntil=0,undoState:State|null=null,undoItem:Item|null=null;
 const audio=new GameAudio(),items:Item[]=[],templates=new Map<Kind,Template>(),thumbs=new Map<string,string>();
 const effects=new Effects(),video=new VideoDirector($<HTMLButtonElement>('video-retry')),chat=new ChatDirector($('chat-stream'),effects);
+const completion=new CompletionSequence(game,effects);
+const taskIntroduction=new TaskIntroduction(game,effects);
+let taskIntroduced=false,arrivalReady=false;
+video.whenArrivalEnds(()=>{if(!taskIntroduced&&!ended)arrivalReady=true;});
+function beginTaskIntroduction(){
+ if(taskIntroduced||taskIntroduction.active||ended||busy)return;
+ arrivalReady=false;chat.setHeld(false);
+ const source=chat.pair('咦，委托书找不到了……我记得就放在钱包里。帮我一起找找吧！','好呀，先把你的小钱包找出来！',true);
+ void taskIntroduction.run(source,name=>audio.play(name),()=>{taskIntroduced=true;lastInput=performance.now();save();});
+}
+function skipTaskIntroduction(){taskIntroduction.cancel();taskIntroduced=true;arrivalReady=false;chat.setHeld(false);}
+let demoCompletePending=false,completionResume=false;
 let resumed=false,introTime=2,praiseSpoken=false;
 let playSeconds=0;const likeMilestones=new Set<number>();
 function updateClock(){const text=countdown(playSeconds);if($('timer').textContent!==text)$('timer').textContent=text;}
@@ -148,13 +165,13 @@ function modal(title:string,copy:string,actions:{text:string;fn:()=>void;primary
  for(const a of actions){const b=document.createElement('button');b.textContent=a.text;b.className=a.primary?'primary':a.subtle?'subtle':'';b.onclick=()=>{audio.play('tap');a.fn();};body.append(b);}if(!dialog.open)dialog.showModal();
 }
 function closeModal(){dialog.close();setPause(false);lastInput=performance.now();}
-function pauseMenu(){if(!ready||busy)return;
+function pauseMenu(){if(!ready||busy||ended)return;
  modal('歇一小会儿','委托书不会跑。准备好了，我们继续找。',[{text:'继续寻找',primary:true,fn:closeModal},{text:'重新整理',fn:confirmRestart},{text:'暂时离开',subtle:true,fn:()=>{const saved=save();modal('下次接着找',saved?'进度保留在这台设备上。你可以关闭页面，也可以继续寻找。':'浏览器未允许保存进度。关闭页面可能需要重新整理。',[{text:'继续寻找',primary:true,fn:closeModal}]);}}]);
  if(state.tray.length){const back=document.createElement('button');back.textContent='退回上一步';back.onclick=undo;$('dialog-body').insertBefore(back,$('dialog-body').querySelectorAll('button')[1]);}
  const row=document.createElement('div');row.className='audio-options';(['music','sfx'] as const).forEach(k=>{const b=document.createElement('button');const update=()=>{b.textContent=(k==='music'?'音乐':'音效')+' · '+(audio[k]?'开':'关');b.setAttribute('aria-pressed',String(audio[k]));};update();b.onclick=()=>{audio[k]=!audio[k];audio.save();update();};row.append(b);});$('dialog-body').append(row);
 }
 function confirmRestart(){modal('重新整理？','本次尚未完成的整理进度会重置。',[{text:'继续当前委托',primary:true,fn:closeModal},{text:'重新开始',fn:restart}]);}
-function restart(){restarting=true;try{localStorage.removeItem(SAVE_KEY);}catch{}location.reload();}
+function restart(){if(restarting)return;restarting=true;taskIntroduction.cancel();setPause(true);$('demo-restart').setAttribute('disabled','');try{localStorage.removeItem(SAVE_KEY);}catch{}location.reload();}
 function fullTray(){modal('暂存格满了','退回上一步，已经归好的物品会保留。',[{text:'退回一步',primary:true,fn:undo},{text:'重新整理',subtle:true,fn:confirmRestart}]);}
 function undo(){
  const id=[...state.removed].reverse().find(id=>state.tray.some(t=>t.id===id));const i=items.find(i=>i.id===id);if(!i)return;
@@ -166,7 +183,7 @@ const wait=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 function pickableFromEvent(event:PointerEvent){const r=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-r.left)/r.width*2-1,-(event.clientY-r.top)/r.height*2+1);ray.setFromCamera(pointer,camera);return ray.intersectObjects(items.filter(i=>!i.removed).map(i=>i.root),true)[0];}
 function parentItem(object:THREE.Object3D){let o:THREE.Object3D|null=object;while(o){if(o.userData.item)return o.userData.item as Item;o=o.parent;}return null;}
 async function pickup(item:Item){
- if(busy||paused||ended||item.removed)return;busy=true;chat.picked();lastInput=performance.now();idleHint=undefined;
+ if(busy||paused||ended||taskIntroduction.active||item.removed)return;busy=true;chat.picked();lastInput=performance.now();idleHint=undefined;
  undoState=structuredClone(state);undoItem=item;
  const before=state;const result=collect(state,{id:item.id,kind:item.kind});
  const removedAt=item.body.translation();item.removed=true;item.root.visible=false;if(basketMode)world.removeRigidBody(item.body);else item.body.setEnabled(false);if(basketMode){nudgeBasketNeighbours(items,removedAt);}else{releaseNeighbours(items,removedAt);vacancySettler.begin(items,removedAt);gapAssist=false;}audio.play('pick');hideHint();
@@ -187,30 +204,45 @@ async function pickup(item:Item){
  if(state.cleared>0&&!firstTriple){firstTriple=true;say('对，就这样。是收好，可不是扔掉。');}
  if(!basketMode&&!cameraSpoken&&items.filter(i=>i.kind==='camera'&&!state.removed.includes(i.id)).length===0&&!state.tray.some(t=>t.kind==='camera')){cameraSpoken=true;chat.pair('这些相机，记下过不少故事。','照片里还有故事呀。',true);video.requestPraise();}
  if(state.tray.length>=5&&!riskSpoken){riskSpoken=true;say('先找槽里已有的，别急着拿新的。');}
- if(canTakeKey(state)){showHint('整理完成！点击右侧的委托书。');say('都归好了。这份委托书，原来就在这里！',true);$('target').classList.add('found');$('target-status').textContent='查看委托';audio.play('key');void effects.stars(game,680,1342,10);void effects.animate($('commission-thumb'),[{transform:'scale(.6)'},{offset:.55,transform:'scale(1.2)'},{transform:'scale(1)'}],460);}
- if(result.full)fullTray();save();
+ if(canTakeKey(state))startCompletion();
+ if(result.full&&!demoCompletePending)fullTray();save();
 }
-function save(){if(!ready||busy||restarting)return false;try{localStorage.setItem(SAVE_KEY,JSON.stringify({presentation:3,playSeconds,likes:[...likeMilestones],chat:chat.snapshot(),praiseSpoken,layoutRevision:LAYOUT_REVISION,basketPlan:basketMode?basketPlan:undefined,state,undoState,undoId:undoItem?.id,positions:items.map(i=>({p:basketMode&&i.removed?i.root.position:i.body.translation(),q:basketMode&&i.removed?{x:i.root.quaternion.x,y:i.root.quaternion.y,z:i.root.quaternion.z,w:i.root.quaternion.w}:i.body.rotation()})),firstTriple,cameraSpoken,keySpoken,riskSpoken,ended}));return true;}catch{return false;}}
+function save(){if(!ready||busy||restarting)return false;try{localStorage.setItem(SAVE_KEY,JSON.stringify({presentation:4,taskIntroduced,playSeconds,likes:[...likeMilestones],chat:chat.snapshot(),praiseSpoken,layoutRevision:LAYOUT_REVISION,basketPlan:basketMode?basketPlan:undefined,state,undoState,undoId:undoItem?.id,positions:items.map(i=>({p:basketMode&&i.removed?i.root.position:i.body.translation(),q:basketMode&&i.removed?{x:i.root.quaternion.x,y:i.root.quaternion.y,z:i.root.quaternion.z,w:i.root.quaternion.w}:i.body.rotation()})),firstTriple,cameraSpoken,keySpoken,riskSpoken,ended}));return true;}catch{return false;}}
 function restore(){try{
  const raw=localStorage.getItem(SAVE_KEY);if(!raw)return;const saved=JSON.parse(raw);const s=saved.state as State;
  if(!s||!Array.isArray(s.removed)||s.removed.length>totalItems||s.cleared%3!==0||s.cleared+s.tray.length!==s.removed.length)return;
- resumed=true;praiseSpoken=!!saved.praiseSpoken;if(saved.presentation>=3)chat.restore(saved.chat);
+ resumed=true;taskIntroduced=saved.taskIntroduced!==false;praiseSpoken=!!saved.praiseSpoken;if(saved.presentation>=3)chat.restore(saved.chat);
  playSeconds=Number.isFinite(saved.playSeconds)?Math.max(0,saved.playSeconds):0;updateClock();for(const p of LIKE_MILESTONES)if(s.cleared/totalItems>=p)likeMilestones.add(p);
  state=s;undoState=saved.undoState;undoItem=items.find(i=>i.id===saved.undoId)??null;firstTriple=saved.firstTriple;cameraSpoken=saved.cameraSpoken;keySpoken=saved.keySpoken;riskSpoken=saved.riskSpoken;
  items.forEach(i=>{const pos=saved.layoutRevision===LAYOUT_REVISION?saved.positions?.[i.id]:null;if(pos){i.body.setTranslation(pos.p,false);i.body.setRotation(pos.q,false);}if(s.removed.includes(i.id)){i.removed=true;i.root.visible=false;if(basketMode){i.root.position.copy(i.body.translation());i.root.quaternion.copy(i.body.rotation());world.removeRigidBody(i.body);}else i.body.setEnabled(false);}else if(saved.layoutRevision!==LAYOUT_REVISION&&s.removed.length)i.body.wakeUp();});
  if(saved.layoutRevision!==LAYOUT_REVISION&&s.removed.length){if(!basketMode)vacancySettler.begin(items,{x:0,y:.5,z:-.075});for(let n=0;n<180;n++){if(!basketMode)vacancySettler.step(1/60);world.step();}}syncBodies();
- hideHint();say('回来了？我们接着找那份委托书。',true);if(state.tray.length===7)fullTray();if(canTakeKey(state))showHint('点击右侧的委托书。');
+ hideHint();if(canTakeKey(state)){completionResume=true;}else{if(taskIntroduced)say('回来了？我们接着找钱包里的委托书。',true);if(state.tray.length===7)fullTray();}
  }catch{/* Incompatible snapshots start a fresh case. */}}
-function choices(text:string,options:{label:string;run:()=>void}[]){game.classList.add('story-active');chat.enterStory();say(text,true);speechUntil=Infinity;$('choices').replaceChildren();for(const option of options){const b=document.createElement('button');b.textContent=option.label;b.onclick=()=>{chat.message(option.label,true);$('choices').replaceChildren();option.run();};$('choices').append(b);}}
-function takeKey(){
- if(!canTakeKey(state,busy)){toast('先把物品归好，就能找到委托书。');return;}if(ended)return;ended=true;hideHint();audio.play('key');$('target').classList.add('found');$('target-status').textContent='已找到';choices('就是这份委托书！先交给我，咱们进去吧。',[{label:'好，先交给你',run:()=>choices('咱们虽然一起来，可你还没看委托内容呢。',[{label:'先核对委托内容',run:()=>passed(true)}])},{label:'先看看委托内容',run:()=>passed(false)}]);save();
+function showWelcome(fallback=false){
+ if(completion.phase==='reward')return;
+ try{let profile:unknown={};try{profile=JSON.parse(localStorage.getItem(PROFILE_KEY)||'{}');}catch{}localStorage.setItem(PROFILE_KEY,JSON.stringify(welcomeProfile(profile)));}catch{/* Presentation still works when browser storage is unavailable. */}
+ audio.play('key');completion.showReward(restart,fallback);
+ // Do not use the pause modal: the last second of the opening video must keep playing.
+ game.querySelectorAll<HTMLElement>('#header,#props,#demo-complete,#demo-restart').forEach(n=>n.inert=true);save();
 }
-function passed(corrected:boolean){choices(corrected?'这就对了。委托人、内容和落款都确认，再做决定。':'不错，先核对委托人、内容和落款，再做决定。',[{label:'这份委托是给我的？',run:()=>choices('其实，我是假装找不到。幕后店主想看看，你会怎么处理。',[{label:'原来是对我的考验呀！',run:()=>choices('是的。这份委托邀请你做新主理人。一起进店看看？',[{label:'一起进去看看',run:openDoor}])}])}]);}
-async function openDoor(){audio.play('key');game.classList.add('door-open');await wait(950);let already=false;try{
- const profile=JSON.parse(localStorage.getItem(PROFILE_KEY)||'{"coins":0,"archives":[],"firstReward":false}');already=profile.firstReward===true;
- if(!already){profile.coins=(Number(profile.coins)||0)+100;profile.archives=[...new Set([...(profile.archives||[]),'神秘老板的见面礼？'])];profile.firstReward=true;profile.isOwner=true;localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));}
- }catch{}
- modal('欢迎来到寻物事务所','从今天起，这里就交给你了。',[{text:'再体验一次',primary:true,fn:restart}]);const reward=document.createElement('div');reward.className='reward';reward.innerHTML='事务所主理权 · '+(already?'已领取':'获得')+'<br>金币 +100'+(already?'（已领取）':'')+'<small>新档案《神秘老板的见面礼？》</small>';$('dialog-body').insertBefore(reward,$('dialog-body').querySelector('button'));game.classList.remove('door-open');
+function startCompletion(){
+ if(!ready||busy||ended||!canTakeKey(state))return;
+ ended=true;skipTaskIntroduction();demoCompletePending=false;hideHint();idleHint=undefined;undoState=null;undoItem=null;
+ $('demo-complete').setAttribute('disabled','');$('target').classList.add('found');$('target-status').textContent='已找到';
+ game.dataset.ending='reveal';chat.enterStory();video.holdForCompletion();audio.play('key');save();
+ void completion.reveal(()=>{game.dataset.ending='collect';$('target').classList.add('delivered');$('target-status').textContent='已收好';audio.play('pick');}).then(()=>{
+  game.dataset.ending='video';video.playCompletion(()=>showWelcome(),()=>showWelcome(true));
+ });
+}
+function requestDemoComplete(){
+ if(!ready||paused||ended||demoCompletePending)return;
+ void audio.unlock();skipTaskIntroduction();demoCompletePending=true;$('demo-complete').setAttribute('disabled','');
+ // Finish an in-flight pickup or the entrance before altering physics / tray state.
+}
+function applyDemoComplete(){
+ if(!demoCompletePending||busy||paused||ended||introTime<2)return;
+ for(const item of items){if(item.removed)continue;item.removed=true;item.root.visible=false;if(basketMode)world.removeRigidBody(item.body);else item.body.setEnabled(false);}
+ state={tray:[],cleared:totalItems,removed:items.map(i=>i.id)};undoState=null;undoItem=null;vacancySettler.stop();renderTray();startCompletion();
 }
 function visibleCandidate(kind?:Kind){scene.updateMatrixWorld(true);for(const i of [...items].sort(()=>Math.random()-.5)){if(i.removed||(kind&&i.kind!==kind))continue;const p=i.root.position.clone().project(camera);if(Math.abs(p.x)>.93||Math.abs(p.y)>.85)continue;ray.setFromCamera(new THREE.Vector2(p.x,p.y),camera);const hit=ray.intersectObjects(items.filter(i=>!i.removed).map(i=>i.root),true)[0];if(hit&&parentItem(hit.object)===i)return i;}return undefined;}
 let pressed:{x:number;y:number}|null=null;
@@ -218,14 +250,14 @@ document.addEventListener('pointerdown',()=>{void audio.unlock();},{once:true});
 renderer.domElement.addEventListener('pointerdown',e=>{pressed={x:e.clientX,y:e.clientY};});
 renderer.domElement.addEventListener('pointercancel',()=>{pressed=null;});
 renderer.domElement.addEventListener('pointerup',e=>{const start=pressed;pressed=null;if(!start||Math.hypot(e.clientX-start.x,e.clientY-start.y)>12||!ready||paused||busy||ended)return;void audio.unlock();lastInput=performance.now();const hit=pickableFromEvent(e);if(!hit){chat.invalid();return;}const item=parentItem(hit.object);if(item){if(!basketMode&&!firstTriple&&item.kind!=='camera'){chat.invalid();toast('先试着找到 3 台相机。');return;}void pickup(item);}});
-$('pause').onclick=pauseMenu;$('target').onclick=()=>{if(!ready||paused)return;if(canTakeKey(state,busy))takeKey();else toast('整理完全部 '+totalItems/3+' 组，就能找到委托书。');};
-document.querySelectorAll('.prop').forEach(b=>b.addEventListener('click',()=>{audio.play('tap');toast('这件工具会在后续委托中开放。');}));
+$('pause').onclick=pauseMenu;$('demo-complete').onclick=requestDemoComplete;$('demo-restart').onclick=()=>{if(!ready||restarting)return;audio.play('tap');restart();};
+document.querySelectorAll('.prop').forEach(b=>b.addEventListener('click',()=>{if(ended)return;audio.play('tap');toast('这件工具会在后续委托中开放。');}));
 dialog.addEventListener('cancel',e=>{e.preventDefault();if(state.tray.length<7&&!ended)closeModal();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){save();if(ready&&!dialog.open)modal('稍等你回来','动画和整理进度已暂停。',[{text:'继续整理',primary:true,fn:closeModal}]);video.setPaused(true);effects.setPaused(true);audio.setPaused(true);}else{last=performance.now();if(!paused){video.setPaused(false);effects.setPaused(false);audio.setPaused(false);}}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){save();if(ready&&!dialog.open&&!ended)modal('稍等你回来','动画和整理进度已暂停。',[{text:'继续整理',primary:true,fn:closeModal}]);video.setPaused(true);effects.setPaused(true);audio.setPaused(true);}else{last=performance.now();if(!paused){video.setPaused(false);effects.setPaused(false);audio.setPaused(false);}}});
 addEventListener('pagehide',save);
 function boneByName(root:THREE.Object3D,name:string){let found:THREE.Object3D|undefined;root.traverse(o=>{if(o.name===name)found=o;});return found;}
 function visibleItems(){scene.updateMatrixWorld(true);return items.filter(i=>{if(i.removed)return false;const p=i.root.position.clone().project(camera);if(Math.abs(p.x)>.96||Math.abs(p.y)>.96)return false;ray.setFromCamera(new THREE.Vector2(p.x,p.y),camera);const h=ray.intersectObjects(items.filter(j=>!j.removed).map(j=>j.root),true)[0];return !!h&&parentItem(h.object)===i;});}
-function caseReport(){return{preset:basketMode?'basket-four':'original-six',target:'commission',countdown:countdown(playSeconds),likeMilestones:[...likeMilestones],sizeBoost:basketMode?{min:Math.min(...items.map(i=>sizeBoost(i.id))),max:Math.max(...items.map(i=>sizeBoost(i.id)))}:null,video:video.report(),chat:chat.snapshot(),intro:introTime<2,total:totalItems,inventory:activeKinds.map(kind=>({kind,total:items.filter(i=>i.kind===kind).length})),ready,paused,busy,groups:state.cleared/3,tray:state.tray.map(t=>({id:t.id,kind:t.kind})),remaining:items.filter(i=>!i.removed).length,goalAvailable:canTakeKey(state,busy),visible:visibleItems().map(i=>({id:i.id,kind:i.kind})),tutorial:!basketMode&&!firstTriple,ended,settling:{active:vacancySettler.running,passes:gapPasses,hole:detectedGap}};}
+function caseReport(){return{preset:basketMode?'basket-four':'original-six',target:'wallet-commission',taskIntroduction:{phase:taskIntroduction.phase,introduced:taskIntroduced},countdown:countdown(playSeconds),likeMilestones:[...likeMilestones],sizeBoost:basketMode?{min:Math.min(...items.map(i=>sizeBoost(i.id))),max:Math.max(...items.map(i=>sizeBoost(i.id)))}:null,video:video.report(),chat:chat.snapshot(),intro:introTime<2,total:totalItems,inventory:activeKinds.map(kind=>({kind,total:items.filter(i=>i.kind===kind).length})),ready,paused,busy,groups:state.cleared/3,tray:state.tray.map(t=>({id:t.id,kind:t.kind})),remaining:items.filter(i=>!i.removed).length,goalAvailable:canTakeKey(state,busy),visible:visibleItems().map(i=>({id:i.id,kind:i.kind})),tutorial:!basketMode&&!firstTriple,ended,settling:{active:vacancySettler.running,passes:gapPasses,hole:detectedGap}};}
 function registerTools(){
  const context=(document as Document&{modelContext?:{registerTool:(tool:unknown,options:unknown)=>void}}).modelContext;if(!context?.registerTool)return;const lifecycle=new AbortController();
  const register=(name:string,description:string,schema:object,execute:(input:unknown)=>unknown,readOnlyHint=false)=>{try{context.registerTool({name,description,inputSchema:schema,annotations:{readOnlyHint},execute},{signal:lifecycle.signal});}catch(e){console.warn('Optional game controls unavailable',e);}};
@@ -251,11 +283,13 @@ async function init(){
  await RAPIER.init();world=new RAPIER.World({x:0,y:basketMode?BASKET_GRAVITY:-9.81,z:0});world.timestep=BASKET_STEP;boundaries();let loaded=0;
  await Promise.all(activeKinds.map(async kind=>{const gltf=await loader.loadAsync(assetBase+'models/'+(basketMode?'basket-':'')+kind+'.glb');const template:Template=basketMode?normalizeBasket(gltf.scene):normalize(gltf.scene,sizes[kind]);if(basketMode)tuneBasketSurface(template.root);else{tuneSurface(template.root,kind);template.hull=contactHull(template.root);}templates.set(kind,template);$('load-fill').style.width=(++loaded/(activeKinds.length+3)*85)+'%';}));
  activeKinds.forEach(k=>makeThumb(k,templates.get(k)!.root));await spawn();
- $('load-fill').style.width='100%';ready=true;restore();renderTray();if(canTakeKey(state)){$('target').classList.add('found');$('target-status').textContent='查看委托';}
- await wait(120);$('loading').style.opacity='0';await wait(350);$('loading').remove();if(!resumed){prepareIntro();chat.pair('咱们来看看这家店。咦，我的委托书放哪儿了？','别急，我帮你一起找！',true);}video.start(resumed);video.setPaused(paused||document.hidden);
- registerTools();
+ $('load-fill').style.width='100%';ready=true;restore();renderTray();
+ await wait(120);$('loading').style.opacity='0';await wait(350);$('loading').remove();if(!resumed)prepareIntro();
+ if(!taskIntroduced&&!completionResume){game.classList.add('task-unintroduced');$('target-status').textContent='待揭晓';chat.setHeld(true);}
+ video.start(resumed&&taskIntroduced);video.setPaused(paused||document.hidden);
+ $('demo-complete').removeAttribute('disabled');$('demo-restart').removeAttribute('disabled');if(completionResume)startCompletion();registerTools();
  function frame(now:number){requestAnimationFrame(frame);const activeDt=Math.max(0,(now-last)/1000),dt=Math.min(activeDt,basketMode?.08:.05);last=now;if(!paused&&!document.hidden){elapsed+=dt;
-  video.tick(dt);chat.tick(dt);if(!ended&&introTime>=2){playSeconds+=activeDt;updateClock();}
+  applyDemoComplete();video.tick(dt);if(arrivalReady&&!busy&&!ended)beginTaskIntroduction();chat.tick(dt);if(!ended&&introTime>=2&&!taskIntroduction.active){playSeconds+=activeDt;updateClock();}
   if(introTime<2){drawIntro(dt);renderer.render(scene,camera);return;}
   if(basketMode){if(items.some(i=>!i.removed&&!i.body.isSleeping())){accumulator+=dt;let n=0;while(accumulator>=BASKET_STEP&&n++<5){world.step();accumulator-=BASKET_STEP;}}else accumulator=0;}
   else{accumulator+=dt;let n=0;while(accumulator>=1/60&&n++<3){vacancySettler.step(1/60);world.step();accumulator-=1/60;}}
@@ -272,7 +306,7 @@ async function init(){
    }
   }
   if(performance.now()>speechUntil)speech.classList.add('quiet');
-  if(now-lastInput>8000&&!busy&&!ended&&now>speechUntil){idleHint=visibleCandidate(basketMode||firstTriple?undefined:'camera');hintUntil=now+950;lastInput=now;audio.play('hint');}
+  if(now-lastInput>8000&&!busy&&!ended&&!taskIntroduction.active&&now>speechUntil){idleHint=visibleCandidate(basketMode||firstTriple?undefined:'camera');hintUntil=now+950;lastInput=now;audio.play('hint');}
   if(idleHint&&now<hintUntil&&!idleHint.removed){idleHint.root.rotateY(Math.sin((now-hintUntil)/90)*.035);}else idleHint=undefined;
   audio.update();
  }if(!paused&&!document.hidden)renderer.render(scene,camera);}

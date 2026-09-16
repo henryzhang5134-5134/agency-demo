@@ -1,6 +1,6 @@
-# 寻物事务所 · 游戏页
+# 钱包去哪了
 
-《寻找委托书》首案试玩，使用 Three.js、Rapier、TypeScript 与 Vite。2026-09-15 确认的棕色旅行箱版本：96 件物品／32 组，白熊视频演出、直播式对白、弹性收集与三消动效。
+《委托书去哪了》首案试玩，使用 Three.js、Rapier、TypeScript 与 Vite。棕色旅行箱内有 96 件物品／32 组，包含白熊视频演出、成对对白、钱包任务引导、弹性收集与三消动效。
 
 ## 本地运行
 
@@ -10,9 +10,9 @@
 
 ## GitHub Pages
 
-仓库：`henryzhang5134-5134/agency-demo`。在 Settings → Pages 中将 Source 设为 GitHub Actions，上传到 main 后自动检查、构建和发布。部署成功后，试玩地址为 https://henryzhang5134-5134.github.io/agency-demo/ 。此处是配置目标，是否已上线请以 Actions 和 Pages 状态为准。
+仓库：`henryzhang5134-5134/agency-demo`。通过 GitHub Actions 自动检查、构建和发布 main 分支。试玩地址：https://henryzhang5134-5134.github.io/agency-demo/ 。最新发布状态以 Actions 为准。
 
-首页展示入口为 `home.html`。进度仅保存在当前浏览器，不会同步到其他人的设备。首次点击后才可开启声音，视频加载速度取决于网络。0:00 后可继续游戏。
+通关后自动播放钱包交接、开门与奖励演出；“开启我的小店”暂时仅提示“建设中，敬请期待”，不进入主页。“通”为演示用一键通关，“重”为本局重开。进度仅保存在当前浏览器，不会同步到其他人的设备。首次点击后才可开启声音，视频加载速度取决于网络。0:00 后可继续游戏。
 
 ## 素材与发布范围
 

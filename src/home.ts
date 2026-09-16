@@ -63,7 +63,7 @@ function profile(){try{return JSON.parse(localStorage.getItem('finding-profile')
 function showPanel(name:string){
  returnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;panelName=name;content.replaceChildren();reset();home.classList.add('still');
  const titles:Record<string,string>={settings:'事务所设置',commissions:'今天的委托',archive:'我的档案',achievement:'我的成就',ranking:'事务所排名',checkin:'今日签到',tasks:'每日任务',dress:'装扮事务所',exchange:'兑换',challenge:'挑战模式'};
- const h=document.createElement('h2');h.textContent=titles[name]??'寻物事务所';content.append(h);
+ const h=document.createElement('h2');h.textContent=titles[name]??'钱包去哪了';content.append(h);
  if(name==='settings'){
   const row=document.createElement('label');row.className='setting-row';const label=document.createElement('span');label.textContent='场景动效与云朵飘动';const input=document.createElement('input');input.type='checkbox';input.checked=motion;input.onchange=()=>{setMotion(input.checked);home.classList.add('still');};row.append(label,input);content.append(row);
   button(sensor?'重新校准手机倾斜':'启用手机倾斜',()=>void enableSensor());
@@ -71,7 +71,7 @@ function showPanel(name:string){
   text('本页为主页展示 Demo。资产、签到与挑战次数为演示信息，不关联钱包资产。','panel-note');
  }else if(name==='commissions'){
   text('柜台留言：今天的委托到了，来接一份吧。');
-  const card=document.createElement('article');card.className='case-card';card.innerHTML='<div class="case-meta"><span>白熊的委托</span><span>剧情首案</span></div><h3>寻找黄铜钥匙</h3><p>钥匙压在旅行箱底了，能帮我整理一下吗？</p><div class="case-meta"><span>目标 · 黄铜钥匙</span><span>难度 · 入门</span><span>不限时</span><span>奖励 · 100 金币</span></div>';content.append(card);
+  const card=document.createElement('article');card.className='case-card';card.innerHTML='<div class="case-meta"><span>白熊的委托</span><span>剧情首案</span></div><h3>寻找委托书</h3><p>帮小白熊整理旅行箱，找出那份神秘委托书。</p><div class="case-meta"><span>目标 · 委托书</span><span>难度 · 入门</span><span>计时归零仍可继续</span><span>奖励 · 1000 游戏币</span></div>';content.append(card);
   const a=document.createElement('a');a.className='primary';a.textContent='进入首案试玩';a.href=assetBase;content.append(a);
   text('目前开放首案试玩，已有整理进度会保留。后续委托尚未开放。','panel-note');
  }else if(name==='archive'){
