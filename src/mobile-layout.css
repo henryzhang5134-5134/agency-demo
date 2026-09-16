@@ -1,0 +1,25 @@
+/* Shared video/floor coordinates: changing the stage never moves their seam. */
+#environment{position:absolute;left:-75px;top:var(--stage-y,0px);width:900px;height:2200px;transform:scale(var(--stage-scale,1));transform-origin:450px 0;pointer-events:none;z-index:0}
+#environment #video-stage{left:0;top:0}
+#environment #ground-art{left:0;top:490px;width:900px;height:1740px;background-size:900px 1560px;background-color:#d9b89c;mask-image:linear-gradient(transparent,black 8px);-webkit-mask-image:linear-gradient(transparent,black 8px)}
+#playfield{position:absolute;left:var(--board-left,0px);top:var(--case-top,494px);width:750px;height:750px;transform:scale(var(--board-scale,1));transform-origin:0 0;z-index:3}
+#playfield #case-art,#playfield #case-front,#playfield #pile{left:0;top:0}
+#playfield #hint{top:46px}
+#case-lid{position:absolute;inset:0;width:750px;height:750px;object-fit:contain;z-index:8;pointer-events:none;transform-origin:50% 15%;will-change:transform,opacity}
+#case-lid[hidden]{display:none}
+#playfield[data-opening="closed"] #pile,#playfield[data-opening="opening"] #pile,#playfield[data-opening="closed"] #case-front,#playfield[data-opening="opening"] #case-front,#playfield:not([data-opening="open"]) #hint{visibility:hidden}
+#playfield:not([data-opening="open"]) #pile{pointer-events:none}
+#game #tray{left:var(--board-left,0px);top:var(--tray-top,1233px);transform:scale(var(--board-scale,1));transform-origin:0 0}
+#game #props{left:var(--props-left,33px);right:auto;width:684px;top:var(--props-top,1419px);transform:scale(var(--board-scale,1));transform-origin:0 0}
+#game #header{top:var(--header-top,66px);transform:scale(var(--header-scale,1));transform-origin:0 0}
+#game #demo-complete{top:var(--demo-top,76px)}
+#game #demo-restart{top:calc(var(--demo-top,76px) + 75px)}
+#game #speech,#game #speech.quiet,#game.story-active #speech{top:var(--chat-top,180px);height:var(--chat-height,260px)}
+#game #like-stream{top:var(--chat-top,180px);height:var(--chat-height,260px)}
+#game #toast{bottom:auto;top:calc(var(--tray-top,1233px) - 65px)}
+.task-card{top:calc(var(--art-height,1650px)/2 - 90px)}
+.completion-halo{top:calc(var(--art-height,1650px)/2 - 405px)}
+.completion-heading{top:calc(var(--art-height,1650px)/2 - 336px)}
+.completion-prize{top:calc(var(--art-height,1650px)/2 - 205px)}
+.completion-caption{top:calc(var(--art-height,1650px)/2 + 145px)}
+.welcome-aura{top:calc(var(--art-height,1650px)/2 - 575px)}

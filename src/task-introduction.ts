@@ -12,7 +12,7 @@ export class TaskIntroduction {
   this.generation++;this.host?.getAnimations({subtree:true}).forEach(a=>a.cancel());this.host?.remove();this.host=null;this.phase='done';
   this.game.classList.remove('task-guiding','task-unintroduced');
  }
- async run(source:HTMLElement|undefined,onSound:(name:'hint'|'pick'|'slot')=>void,onDone:()=>void){
+ async run(source:HTMLElement|undefined,onSound:(name:'hint'|'pick'|'slot')=>void,onDone:()=>void,onDock:()=>void=()=>{}){
   if(this.active)return;
   const generation=++this.generation,reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const host=document.createElement('div');host.id='task-introduction';host.setAttribute('role','status');host.setAttribute('aria-live','polite');
@@ -33,17 +33,17 @@ export class TaskIntroduction {
    {transform:'translate(0,0) rotate(0deg) scale(1)',opacity:1},
   ],reduced?180:760,'cubic-bezier(.2,.72,.26,1)');if(!live())return;
   host.dataset.phase=this.phase='center';await this.effects.animate(card,[{opacity:1},{opacity:1}],1300,'linear');if(!live())return;
-  host.dataset.phase=this.phase='docking';onSound('pick');
+  host.dataset.phase=this.phase='docking';onSound('pick');onDock();
   const start=center(icon),target=this.game.querySelector<HTMLElement>('#commission-thumb')!,end=center(target);
   const flight=icon.cloneNode(true) as HTMLImageElement;flight.className='task-flight-icon';flight.style.left=(start.x-64)+'px';flight.style.top=(start.y-64)+'px';flight.alt='';flight.setAttribute('aria-hidden','true');host.append(flight);icon.style.visibility='hidden';
   void this.effects.animate(card,[{opacity:1,transform:'scale(1)'},{opacity:0,transform:'translate(12px,18px) scale(.94)'}],220).then(()=>{card.style.opacity='0';});
   void this.effects.animate(shade,[{opacity:1},{opacity:0}],400).then(()=>{shade.style.opacity='0';});
-  const dx=end.x-start.x,dy=end.y-start.y;
+  const dx=end.x-start.x,dy=end.y-start.y,dockScale=target.getBoundingClientRect().width/(this.game.getBoundingClientRect().width/750)/128;
   await this.effects.animate(flight,reduced?[{opacity:1},{opacity:0}]:[
    {transform:'translate(0,0) rotate(-4deg) scale(1)',opacity:1},
    {offset:.25,transform:`translate(${dx*.13}px,${dy*.05-35}px) rotate(7deg) scale(1.08)`},
    {offset:.72,transform:`translate(${dx*.82}px,${dy*.61}px) rotate(-6deg) scale(.8)`},
-   {transform:`translate(${dx}px,${dy}px) rotate(0deg) scale(.609375)`,opacity:1},
+   {transform:`translate(${dx}px,${dy}px) rotate(0deg) scale(${dockScale})`,opacity:1},
   ],reduced?180:820,'cubic-bezier(.38,.05,.52,1)');if(!live())return;
   flight.remove();this.game.classList.remove('task-unintroduced');this.game.querySelector('#target-status')!.textContent='寻找中';onSound('slot');
   void this.effects.stars(this.game,end.x,end.y,reduced?3:7);

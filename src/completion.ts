@@ -1,16 +1,17 @@
 import type {Effects} from './presentation';
+import {elementCenter,bearBagPoint} from './mobile-layout';
 const assetBase=import.meta.env?.BASE_URL??'/';
 export class CompletionSequence {
  phase:'idle'|'reveal'|'collect'|'video'|'reward'='idle';
  constructor(private game:HTMLElement,private effects:Effects){}
  private confetti(host:HTMLElement){
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const welcome=host.id==='welcome-overlay';
+  const welcome=host.id==='welcome-overlay',height=this.game.offsetHeight;
   for(let j=0;j<(reduced?10:40);j++){
    const bit=document.createElement('i');bit.className='completion-confetti';const left=j%2===0;
    bit.style.background=['#ffcd57','#ee8568','#258c92','#fff5d4','#a3bccf'][j%5];host.append(bit);
-   const fromX=left?-35:785,fromY=980+Math.random()*250,toX=welcome?(left?30+Math.random()*145:575+Math.random()*145):70+Math.random()*610,peak=(welcome?270:450)+Math.random()*300;
-   void this.effects.animate(bit,[{transform:`translate(${fromX}px,${fromY}px) rotate(0deg)`,opacity:0},{offset:.09,opacity:1},{offset:.42,transform:`translate(${toX}px,${peak}px) rotate(${j*37}deg)`,opacity:1},{offset:.73,transform:`translate(${toX+(left?-24:24)}px,${peak+390}px) rotate(${j*53}deg)`,opacity:1},{transform:`translate(${toX+(left?35:-35)}px,1650px) rotate(${j*73+240}deg)`,opacity:0}],2500+Math.random()*1000,'cubic-bezier(.2,.5,.5,1)').then(()=>bit.remove());
+   const fromX=left?-35:785,fromY=height*.6+Math.random()*250,toX=welcome?(left?30+Math.random()*145:575+Math.random()*145):70+Math.random()*610,peak=(welcome?height/2-555:height/2-375)+Math.random()*300;
+   void this.effects.animate(bit,[{transform:`translate(${fromX}px,${fromY}px) rotate(0deg)`,opacity:0},{offset:.09,opacity:1},{offset:.42,transform:`translate(${toX}px,${peak}px) rotate(${j*37}deg)`,opacity:1},{offset:.73,transform:`translate(${toX+(left?-24:24)}px,${peak+390}px) rotate(${j*53}deg)`,opacity:1},{transform:`translate(${toX+(left?35:-35)}px,${height}px) rotate(${j*73+240}deg)`,opacity:0}],2500+Math.random()*1000,'cubic-bezier(.2,.5,.5,1)').then(()=>bit.remove());
   }
  }
  async reveal(onCollect:()=>void){
@@ -19,15 +20,15 @@ export class CompletionSequence {
   host.innerHTML='<div class="completion-shade"></div><div class="completion-halo"><div class="completion-rays"></div></div><div class="completion-heading"><span>委托完成</span><h2>钱包和委托书，找到啦！</h2></div><div class="completion-prize"><img src="'+assetBase+'art/game-v2/wallet-commission.png" alt="已找到钱包和委托书"></div><p class="completion-caption">好好收起，一起开启新的故事</p>';
   this.game.append(host);this.confetti(host);
   const prize=host.querySelector<HTMLElement>('.completion-prize')!,rays=host.querySelector<HTMLElement>('.completion-rays')!;
-  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,prizeCenter=elementCenter(this.game,prize),targetCenter=elementCenter(this.game,this.game.querySelector('#commission-thumb')!);
   void this.effects.animate(rays,[{transform:'rotate(-15deg)'},{transform:`rotate(${reduced?-15:55}deg)`}],3300,'linear');
   void this.effects.animate(host,[{opacity:0},{opacity:1}],180);
   // Includes arrival + a quiet 2 second hold. WAAPI pauses with the rest of the game.
-  await this.effects.animate(prize,[{offset:0,transform:'translate(305px,560px) rotate(12deg) scale(.22)',opacity:.2},{offset:.16,transform:'translate(0,-15px) rotate(-5deg) scale(1.08)',opacity:1},{offset:.24,transform:'translate(0,0) rotate(-3deg) scale(1)'},{offset:1,transform:'translate(0,0) rotate(-3deg) scale(1)'}],2500,'ease-out');
+  await this.effects.animate(prize,[{offset:0,transform:`translate(${targetCenter.x-prizeCenter.x}px,${targetCenter.y-prizeCenter.y}px) rotate(12deg) scale(.22)`,opacity:.2},{offset:.16,transform:'translate(0,-15px) rotate(-5deg) scale(1.08)',opacity:1},{offset:.24,transform:'translate(0,0) rotate(-3deg) scale(1)'},{offset:1,transform:'translate(0,0) rotate(-3deg) scale(1)'}],2500,'ease-out');
   this.phase='collect';onCollect();
   for(const el of host.querySelectorAll<HTMLElement>('.completion-shade,.completion-halo,.completion-heading,.completion-caption')){el.style.opacity='0';}
-  // Video stage uses the same 750-unit artboard: the briefcase is beside the bear.
-  await this.effects.animate(prize,[{transform:'translate(0,0) rotate(-3deg) scale(1)',opacity:1},{offset:.5,transform:'translate(42px,-210px) rotate(13deg) scale(.55)',opacity:1},{offset:.88,transform:'translate(64px,-360px) rotate(20deg) scale(.1)',opacity:.9},{transform:'translate(67px,-369px) rotate(20deg) scale(0)',opacity:0}],820,'cubic-bezier(.4,0,.55,1)');
+  const bag=bearBagPoint(this.game),dx=bag.x-prizeCenter.x,dy=bag.y-prizeCenter.y;
+  await this.effects.animate(prize,[{transform:'translate(0,0) rotate(-3deg) scale(1)',opacity:1},{offset:.5,transform:`translate(${dx*.62}px,${dy*.57}px) rotate(13deg) scale(.55)`,opacity:1},{offset:.88,transform:`translate(${dx*.96}px,${dy*.97}px) rotate(20deg) scale(.1)`,opacity:.9},{transform:`translate(${dx}px,${dy}px) rotate(20deg) scale(0)`,opacity:0}],820,'cubic-bezier(.4,0,.55,1)');
   host.remove();this.phase='video';
  }
  showReward(onRestart:()=>void,fallback=false){
