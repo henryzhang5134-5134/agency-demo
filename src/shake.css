@@ -1,0 +1,9 @@
+/* Reuse only the tray caption strip: no overlap with pieces, slots or target. */
+#shake-hint{position:absolute;left:27px;bottom:23px;width:578px;height:36px;display:flex;align-items:center;justify-content:center;gap:8px;padding:0;border:0;background:transparent;color:#806044;font-family:inherit;font-size:21px;font-weight:500;line-height:1.2;cursor:pointer;z-index:2;-webkit-tap-highlight-color:transparent}
+#shake-hint:disabled{cursor:default;opacity:.65}
+#shake-hint:enabled:active{transform:translateY(1px);color:#a5672a}
+#shake-hint svg{width:23px;height:27px;flex:none;color:#ad7542}
+#shake-hint.is-shaking svg{animation:shake-reminder-wiggle .7s ease-in-out infinite}
+#shake-hint:focus-visible{outline:2px solid #b78346;outline-offset:2px;border-radius:12px}
+@keyframes shake-reminder-wiggle{0%,55%,100%{transform:rotate(0)}10%,30%{transform:rotate(-12deg)}20%,40%{transform:rotate(12deg)}}
+@media(prefers-reduced-motion:reduce){#shake-hint svg{animation:none}}

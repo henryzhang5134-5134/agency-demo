@@ -1,14 +1,14 @@
 /* User supplied 750 × 1650 layout; PNG extents include handles and tabs. */
 #game{background:#ecddcc}
 #video-stage{position:absolute;left:-75px;top:0;width:900px;height:506.25px;z-index:0;overflow:hidden;background:#bd7763 url('/video/arrival-poster.jpg') center/cover no-repeat}
-#video-stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
-#bear-video-b{opacity:0}
-#ground-art{position:absolute;top:460px;left:0;width:750px;height:1300px;background:url('/art/game-v2/ground-v2.png') top center/750px 1300px no-repeat;z-index:1;pointer-events:none}
-#case-art,#case-front{left:0;top:490px;width:750px;height:750px;background-image:url('/art/game-v2/case-brown.png');background-size:750px 750px}
+#video-stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+#bear-frame-b{opacity:0}
+#ground-art{position:absolute;top:460px;left:0;width:750px;height:1300px;background:url('/art/game-v2/ground-v2.webp') top center/750px 1300px no-repeat;z-index:1;pointer-events:none}
+#case-art,#case-front{left:0;top:490px;width:750px;height:750px;background-image:url('/art/game-v2/case-brown.webp');background-size:750px 750px}
 #case-art{z-index:2}
 #pile{left:0;top:490px;width:750px;height:750px;z-index:3;clip-path:inset(0 0 28px)}
 #case-front{z-index:4;mask-image:linear-gradient(to bottom,transparent 92%,black 94%);-webkit-mask-image:linear-gradient(to bottom,transparent 92%,black 94%)}
-#tray{left:0;top:1262px;width:750px;height:182px;background-image:url('/art/game-v2/tray-commission.png');filter:drop-shadow(0 3px 3px #70401b24);z-index:5}
+#tray{left:0;top:1262px;width:750px;height:182px;background-image:url('/art/game-v2/tray-commission.webp');filter:drop-shadow(0 3px 3px #70401b24);z-index:5}
 #slots{left:27px;right:auto;width:578px;top:40px;height:78px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
 .slot{min-width:0;width:100%;height:78px;border-radius:17px}.slot img{width:84px;height:84px;max-width:none;flex:0 0 auto}
 #progress{bottom:11px;height:30px;line-height:30px;font-size:22px}

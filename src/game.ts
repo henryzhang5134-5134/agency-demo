@@ -3,6 +3,7 @@ import './game-video-layout.css';
 import './completion.css';
 import './task-introduction.css';
 import './mobile-layout.css';
+import './shake.css';
 import * as THREE from 'three';
 import RAPIER from '@dimforge/rapier3d-compat';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -15,6 +16,9 @@ import {Effects,VideoDirector,ChatDirector} from './presentation';
 import {CompletionSequence} from './completion';
 import {TaskIntroduction} from './task-introduction';
 import {mobileLayout,elementCenter} from './mobile-layout';
+import {PileShake} from './pile-shake';
+import type {ShakeSignal} from './phone-shake';
+import {shakeTargets} from './shake-rules';
 import {welcomeProfile} from './completion-rules';
 import {countdown,LIKE_MILESTONES,sizeBoost} from './commission-rules';
 import {BASKET_KINDS,BASKET_TOTAL,BASKET_GRAVITY,BASKET_STEP,BASKET_SETTLE_STEPS,createBasketPlan,validBasketPlan,normalizeBasket,basketBoundaries,spawnBasketItem,createBasketBody,nudgeBasketNeighbours,recoverBasketOutliers} from './basket-preset';
@@ -72,12 +76,31 @@ function progressLikes(){for(const threshold of LIKE_MILESTONES){if(state.cleare
 const introPos=new Map<number,{p:THREE.Vector3;q:THREE.Quaternion;s:THREE.Vector3;delay:number;dx:number;dz:number;spin:THREE.Quaternion}>();
 function prepareIntro(){introTime=0;busy=true;audio.play('drop');for(const i of items){introPos.set(i.id,{p:i.root.position.clone(),q:i.root.quaternion.clone(),s:i.root.scale.clone(),delay:Math.random()*.42,dx:(Math.random()-.5)*.6,dz:(Math.random()-.5)*.4,spin:new THREE.Quaternion().setFromEuler(new THREE.Euler((Math.random()-.5)*.5,0,(Math.random()-.5)*.4))});}}
 function drawIntro(dt:number){introTime+=dt;for(const i of items){const t=introPos.get(i.id);if(!t)continue;const f=Math.min(1,Math.max(0,(introTime-t.delay)/.76)),ease=1-Math.pow(1-f,3),lift=(1-ease)*2.6;i.root.visible=f>0;i.root.position.copy(t.p).add(new THREE.Vector3(t.dx*(1-ease),lift,t.dz*(1-ease)));i.root.scale.copy(t.s).multiplyScalar(1+.28*(1-ease));i.root.quaternion.copy(t.q).multiply(new THREE.Quaternion().slerp(t.spin,1-ease));}if(introTime>=1.2){for(const i of items){const t=introPos.get(i.id)!;i.root.scale.copy(t.s);i.root.quaternion.copy(t.q);i.root.position.copy(t.p);i.root.visible=true;}introPos.clear();introTime=2;busy=false;$('playfield').dataset.opening='open';lastInput=performance.now();save();}}
-if(basketMode){labels.cup='杯子';$('hint').textContent='点选 3 件相同物品，整理旅行箱。';$('progress').innerHTML='已归好 <b>0 / 32</b> 组';game.dataset.preset='basket';}
+if(basketMode){labels.cup='杯子';$('hint').textContent='点选 3 件相同物品，整理旅行箱。';game.dataset.preset='basket';}
 const vacancySettler=new VacancySettler();
+const pileShake=new PileShake();let nextShake=0;
+// Click-only preview: no sensor listeners and no motion-permission request.
+const shakeHint=$<HTMLButtonElement>('shake-hint');
+shakeHint.onclick=()=>{if(!canShake())return;void audio.unlock();triggerShake({x:1,y:.25,strength:1});};
+function canShake(){return ready&&!paused&&!document.hidden&&!busy&&!ended&&!restarting&&!demoCompletePending&&!taskIntroduction.active&&introTime>=2&&$('playfield').dataset.opening==='open'&&!pileShake.active&&elapsed>=nextShake&&state.tray.length<7;}
+function updateShakeControl(){
+ const disabled=!canShake();if(shakeHint.disabled!==disabled)shakeHint.disabled=disabled;
+ const text=pileShake.active?'摇晃中…':elapsed<nextShake?'稍等一下，再摇一摇':'点击摇一摇，换个位置找找';
+ const label=shakeHint.querySelector('span')!;if(label.textContent!==text)label.textContent=text;
+ if(shakeHint.classList.contains('is-shaking')!==pileShake.active)shakeHint.classList.toggle('is-shaking',pileShake.active);
+}
+function triggerShake(signal:ShakeSignal){
+ if(!canShake())return false;
+ const remaining=items.filter(i=>!i.removed).sort((a,b)=>b.body.translation().y-a.body.translation().y);
+ const targets=shakeTargets(state.tray,remaining,!basketMode&&!firstTriple?'camera':undefined);
+ vacancySettler.stop();gapAssist=false;
+ if(!pileShake.begin(items,targets,signal))return false;
+ nextShake=elapsed+3.2;pressed=null;idleHint=undefined;lastInput=performance.now();updateShakeControl();audio.play('shake');return true;
+}
 let nextGapCheck=1,gapCooldown=0,gapPasses=0,lastGapRemoved=-1,gapAssist=false;
 const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(Math.max(devicePixelRatio,1.5),2.5));renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.VSMShadowMap;renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=1;
+renderer.setPixelRatio(Math.min(Math.max(devicePixelRatio,1.5),innerWidth<=600?2:2.5));renderer.setClearColor(0,0);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.VSMShadowMap;renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=1;
 if(basketMode){renderer.shadowMap.type=THREE.PCFShadowMap;renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=1;}
 pile.append(renderer.domElement);
 const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-3.95,3.95,3.95,-3.95,.1,60);
@@ -170,14 +193,13 @@ function makeThumb(name:string,template:THREE.Group){
 }
 function renderTray(matched:number[]=[]){
  $('slots').replaceChildren();for(let j=0;j<7;j++){const node=document.createElement('div');node.className='slot';const token=state.tray[j];if(token){const img=document.createElement('img');img.src=thumbs.get(token.kind)!;img.alt=labels[token.kind];node.append(img);node.dataset.token=String(token.id);if(matched.includes(token.id))node.classList.add('matched');}if(state.tray.length>=5)node.classList.add('danger');$('slots').append(node);}
- $('progress').innerHTML='已归好 <b>'+state.cleared/3+' / '+totalItems/3+'</b> 组';
 }
 let toastHandle=0;
 function toast(text:string){$('toast').textContent=text;$('toast').classList.add('show');clearTimeout(toastHandle);toastHandle=window.setTimeout(()=>$('toast').classList.remove('show'),2300);}
 function say(text:string,force=false){if(!force&&performance.now()<speechUntil)return false;if(chat.storyMode)chat.message(text);else{const reply=text.includes('槽')?'好，先凑齐手上的。':text.includes('归好了')?'找到啦！让我看看。':text.includes('回来')?'嗯，我们继续！':text.includes('收好')?'明白，都是要好好收着的。':'交给我，我们慢慢找。';chat.pair(text,reply,true);}speechUntil=performance.now()+Math.max(3300,text.length*120);return true;}
 function showHint(text:string){$('hint').textContent=text;$('hint').classList.remove('hidden');}
 function hideHint(){$('hint').classList.add('hidden');}
-function setPause(p:boolean){paused=p;audio.setPaused(p);video.setPaused(p);effects.setPaused(p);last=performance.now();accumulator=0;$<HTMLImageElement>('pause').querySelector('img')!.src=assetBase+'art/'+(p?'resume.png':'pause.png');}
+function setPause(p:boolean){paused=p;updateShakeControl();audio.setPaused(p);video.setPaused(p);effects.setPaused(p);last=performance.now();accumulator=0;$<HTMLImageElement>('pause').querySelector('img')!.src=assetBase+'art/'+(p?'resume.png':'pause.png');}
 function modal(title:string,copy:string,actions:{text:string;fn:()=>void;primary?:boolean;subtle?:boolean}[]){
  setPause(true);const body=$('dialog-body');body.replaceChildren();const h=document.createElement('h2');h.textContent=title;const p=document.createElement('p');p.textContent=copy;body.append(h,p);
  for(const a of actions){const b=document.createElement('button');b.textContent=a.text;b.className=a.primary?'primary':a.subtle?'subtle':'';b.onclick=()=>{audio.play('tap');a.fn();};body.append(b);}if(!dialog.open)dialog.showModal();
@@ -185,13 +207,14 @@ function modal(title:string,copy:string,actions:{text:string;fn:()=>void;primary
 function closeModal(){dialog.close();setPause(false);lastInput=performance.now();}
 function pauseMenu(){if(!ready||(busy&&introTime>=2)||ended)return;
  modal('歇一小会儿','委托书不会跑。准备好了，我们继续找。',[{text:'继续寻找',primary:true,fn:closeModal},{text:'重新整理',fn:confirmRestart},{text:'暂时离开',subtle:true,fn:()=>{const saved=save();modal('下次接着找',saved?'进度保留在这台设备上。你可以关闭页面，也可以继续寻找。':'浏览器未允许保存进度。关闭页面可能需要重新整理。',[{text:'继续寻找',primary:true,fn:closeModal}]);}}]);
- if(state.tray.length){const back=document.createElement('button');back.textContent='退回上一步';back.onclick=undo;$('dialog-body').insertBefore(back,$('dialog-body').querySelectorAll('button')[1]);}
+ if(state.tray.length&&!pileShake.active){const back=document.createElement('button');back.textContent='退回上一步';back.onclick=undo;$('dialog-body').insertBefore(back,$('dialog-body').querySelectorAll('button')[1]);}
  const row=document.createElement('div');row.className='audio-options';(['music','sfx'] as const).forEach(k=>{const b=document.createElement('button');const update=()=>{b.textContent=(k==='music'?'音乐':'音效')+' · '+(audio[k]?'开':'关');b.setAttribute('aria-pressed',String(audio[k]));};update();b.onclick=()=>{audio[k]=!audio[k];audio.save();update();};row.append(b);});$('dialog-body').append(row);
 }
 function confirmRestart(){modal('重新整理？','本次尚未完成的整理进度会重置。',[{text:'继续当前委托',primary:true,fn:closeModal},{text:'重新开始',fn:restart}]);}
 function restart(){if(restarting)return;restarting=true;caseGeneration++;taskIntroduction.cancel();setPause(true);$('demo-restart').setAttribute('disabled','');try{localStorage.removeItem(SAVE_KEY);}catch{}location.reload();}
 function fullTray(){modal('暂存格满了','退回上一步，已经归好的物品会保留。',[{text:'退回一步',primary:true,fn:undo},{text:'重新整理',subtle:true,fn:confirmRestart}]);}
 function undo(){
+ if(pileShake.active)return;
  const id=[...state.removed].reverse().find(id=>state.tray.some(t=>t.id===id));const i=items.find(i=>i.id===id);if(!i)return;
  state={...state,tray:state.tray.filter(t=>t.id!==id),removed:state.removed.filter(n=>n!==id)};
  i.removed=false;i.root.visible=true;if(basketMode)i.body=createBasketBody(world,templates.get(i.kind)!.half!,i.root);else i.body.setEnabled(true);const p=i.root.position.clone();p.y=Math.min(p.y+.7,3.3);i.body.setTranslation(p,true);i.body.setLinvel({x:0,y:0,z:0},true);i.body.setAngvel({x:0,y:0,z:0},true);undoState=null;undoItem=null;renderTray();save();
@@ -201,7 +224,7 @@ const wait=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 function pickableFromEvent(event:PointerEvent){const r=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-r.left)/r.width*2-1,-(event.clientY-r.top)/r.height*2+1);ray.setFromCamera(pointer,camera);return ray.intersectObjects(items.filter(i=>!i.removed).map(i=>i.root),true)[0];}
 function parentItem(object:THREE.Object3D){let o:THREE.Object3D|null=object;while(o){if(o.userData.item)return o.userData.item as Item;o=o.parent;}return null;}
 async function pickup(item:Item){
- if(busy||paused||ended||taskIntroduction.active||$('playfield').dataset.opening!=='open'||item.removed)return;busy=true;chat.picked();lastInput=performance.now();idleHint=undefined;
+ if(busy||paused||ended||pileShake.active||taskIntroduction.active||$('playfield').dataset.opening!=='open'||item.removed)return;busy=true;updateShakeControl();chat.picked();lastInput=performance.now();idleHint=undefined;
  undoState=structuredClone(state);undoItem=item;
  const before=state;const result=collect(state,{id:item.id,kind:item.kind});
  const removedAt=item.body.translation();item.removed=true;item.root.visible=false;if(basketMode)world.removeRigidBody(item.body);else item.body.setEnabled(false);if(basketMode){nudgeBasketNeighbours(items,removedAt);}else{releaseNeighbours(items,removedAt);vacancySettler.begin(items,removedAt);gapAssist=false;}audio.play('pick');hideHint();
@@ -217,7 +240,7 @@ async function pickup(item:Item){
   audio.play('match');void effects.stars(game,center,elementCenter(game,nodes[0]).y);
   await Promise.all(nodes.map((n,j)=>effects.animate(n.querySelector('img')!,[{transform:'translateX(0) scale(1)',opacity:1},{offset:.35,transform:`translateX(${(center-centers[j])*.45/layout.boardScale}px) scale(1.18)`,opacity:1},{transform:`translateX(${(center-centers[j])/layout.boardScale}px) scale(.12)`,opacity:0}],220)));
  }
- state=result.state;renderTray();busy=false;
+ state=result.state;renderTray();busy=false;updateShakeControl();
  if(result.matched.length){progressLikes();const remaining=(totalItems-state.cleared)/3;chat.match(remaining,totalItems/3);if(remaining<=6&&!praiseSpoken){praiseSpoken=true;video.requestPraise();}}
  if(state.cleared>0&&!firstTriple){firstTriple=true;say('对，就这样。是收好，可不是扔掉。');}
  if(!basketMode&&!cameraSpoken&&items.filter(i=>i.kind==='camera'&&!state.removed.includes(i.id)).length===0&&!state.tray.some(t=>t.kind==='camera')){cameraSpoken=true;chat.pair('这些相机，记下过不少故事。','照片里还有故事呀。',true);video.requestPraise();}
@@ -225,7 +248,7 @@ async function pickup(item:Item){
  if(canTakeKey(state))startCompletion();
  if(result.full&&!demoCompletePending)fullTray();save();
 }
-function save(){if(!ready||busy||restarting)return false;try{localStorage.setItem(SAVE_KEY,JSON.stringify({presentation:4,taskIntroduced,playSeconds,likes:[...likeMilestones],chat:chat.snapshot(),praiseSpoken,layoutRevision:LAYOUT_REVISION,basketPlan:basketMode?basketPlan:undefined,state,undoState,undoId:undoItem?.id,positions:items.map(i=>({p:basketMode&&i.removed?i.root.position:i.body.translation(),q:basketMode&&i.removed?{x:i.root.quaternion.x,y:i.root.quaternion.y,z:i.root.quaternion.z,w:i.root.quaternion.w}:i.body.rotation()})),firstTriple,cameraSpoken,keySpoken,riskSpoken,ended}));return true;}catch{return false;}}
+function save(){if(!ready||busy||pileShake.active||restarting)return false;try{localStorage.setItem(SAVE_KEY,JSON.stringify({presentation:4,taskIntroduced,playSeconds,likes:[...likeMilestones],chat:chat.snapshot(),praiseSpoken,layoutRevision:LAYOUT_REVISION,basketPlan:basketMode?basketPlan:undefined,state,undoState,undoId:undoItem?.id,positions:items.map(i=>({p:basketMode&&i.removed?i.root.position:i.body.translation(),q:basketMode&&i.removed?{x:i.root.quaternion.x,y:i.root.quaternion.y,z:i.root.quaternion.z,w:i.root.quaternion.w}:i.body.rotation()})),firstTriple,cameraSpoken,keySpoken,riskSpoken,ended}));return true;}catch{return false;}}
 function restore(){try{
  const raw=localStorage.getItem(SAVE_KEY);if(!raw)return;const saved=JSON.parse(raw);const s=saved.state as State;
  if(!s||!Array.isArray(s.removed)||s.removed.length>totalItems||s.cleared%3!==0||s.cleared+s.tray.length!==s.removed.length)return;
@@ -245,7 +268,7 @@ function showWelcome(fallback=false){
 }
 function startCompletion(){
  if(!ready||busy||ended||!canTakeKey(state))return;
- ended=true;skipTaskIntroduction();demoCompletePending=false;hideHint();idleHint=undefined;undoState=null;undoItem=null;
+ ended=true;updateShakeControl();skipTaskIntroduction();demoCompletePending=false;hideHint();idleHint=undefined;undoState=null;undoItem=null;
  $('demo-complete').setAttribute('disabled','');$('target').classList.add('found');$('target-status').textContent='已找到';
  game.dataset.ending='reveal';chat.enterStory();video.holdForCompletion();audio.play('key');save();
  void completion.reveal(()=>{game.dataset.ending='collect';$('target').classList.add('delivered');$('target-status').textContent='已收好';audio.play('pick');}).then(()=>{
@@ -258,7 +281,7 @@ function requestDemoComplete(){
  // Finish an in-flight pickup or the entrance before altering physics / tray state.
 }
 function applyDemoComplete(){
- if(!demoCompletePending||busy||paused||ended||introTime<2)return;
+ if(!demoCompletePending||busy||pileShake.active||paused||ended||introTime<2)return;
  for(const item of items){if(item.removed)continue;item.removed=true;item.root.visible=false;if(basketMode)world.removeRigidBody(item.body);else item.body.setEnabled(false);}
  state={tray:[],cleared:totalItems,removed:items.map(i=>i.id)};undoState=null;undoItem=null;vacancySettler.stop();renderTray();startCompletion();
 }
@@ -279,7 +302,8 @@ function caseReport(){return{preset:basketMode?'basket-four':'original-six',targ
 function registerTools(){
  const context=(document as Document&{modelContext?:{registerTool:(tool:unknown,options:unknown)=>void}}).modelContext;if(!context?.registerTool)return;const lifecycle=new AbortController();
  const register=(name:string,description:string,schema:object,execute:(input:unknown)=>unknown,readOnlyHint=false)=>{try{context.registerTool({name,description,inputSchema:schema,annotations:{readOnlyHint},execute},{signal:lifecycle.signal});}catch(e){console.warn('Optional game controls unavailable',e);}};
- register('read_case_state','Read the current sorting progress and the items visible at the top of the suitcase.',{type:'object',properties:{},additionalProperties:false},caseReport,true);
+ register('read_case_state','Read the current sorting progress and the items visible at the top of the suitcase.',{type:'object',properties:{},additionalProperties:false},()=>({...caseReport(),shake:{...pileShake.report(),mode:'click',motion:'disabled',eligible:canShake()},...(qaMode?{bodies:items.filter(i=>!i.removed).map(i=>({id:i.id,kind:i.kind,p:i.body.translation()}))}:{})}),true);
+ if(qaMode)register('shake_suitcase','Test the same guarded shake action without a physical sensor.',{type:'object',properties:{},additionalProperties:false},()=>({accepted:triggerShake({x:1,y:.3,strength:1}),shake:pileShake.report()}));
  register('collect_matching_groups','Sort up to four groups by selecting currently visible matching objects. Every pickup uses normal physics, tray capacity and animations; stops when no matching visible item is available.',{type:'object',properties:{groups:{type:'integer',minimum:1,maximum:4}},required:['groups'],additionalProperties:false},async input=>{
   const count=(input as {groups:number}).groups;if(!Number.isInteger(count)||count<1||count>4||!ready||paused||busy||ended)throw new Error('Cannot sort in this state');const goal=state.cleared+count*3;let steps=0;
   while(state.cleared<goal&&steps++<count*3+6&&!paused&&!ended){const visible=visibleItems().reverse();const existing=state.tray.find(t=>visible.some(i=>i.kind===t.kind));const kind=existing?.kind??activeKinds.find(k=>visible.filter(i=>i.kind===k).length>=3)??visible[0]?.kind;const item=visible.find(i=>i.kind===kind);if(!item)break;await pickup(item);}return caseReport();
@@ -314,10 +338,11 @@ async function init(){
   if(['closed','opening'].includes($('playfield').dataset.opening!)){audio.update();return;}
   if(!ended&&introTime>=2&&!taskIntroduction.active){playSeconds+=activeDt;updateClock();}
   if(introTime<2){drawIntro(dt);renderer.render(scene,camera);return;}
+  const shakeFinished=pileShake.step(dt);updateShakeControl();
   if(basketMode){if(items.some(i=>!i.removed&&!i.body.isSleeping())){accumulator+=dt;let n=0;while(accumulator>=BASKET_STEP&&n++<5){world.step();accumulator-=BASKET_STEP;}}else accumulator=0;}
   else{accumulator+=dt;let n=0;while(accumulator>=1/60&&n++<3){vacancySettler.step(1/60);world.step();accumulator-=1/60;}}
-  syncBodies();
-  if(!basketMode&&elapsed>nextGapCheck&&!busy&&!ended){
+  syncBodies();if(shakeFinished){lastInput=performance.now();save();}
+  if(!basketMode&&elapsed>nextGapCheck&&!busy&&!pileShake.active&&!ended){
    nextGapCheck=elapsed+1;
    if(lastGapRemoved!==state.removed.length){lastGapRemoved=state.removed.length;gapPasses=0;}
    if(state.removed.length>0&&72-state.removed.length>=12){
@@ -329,7 +354,7 @@ async function init(){
    }
   }
   if(performance.now()>speechUntil)speech.classList.add('quiet');
-  if(now-lastInput>8000&&!busy&&!ended&&!taskIntroduction.active&&now>speechUntil){idleHint=visibleCandidate(basketMode||firstTriple?undefined:'camera');hintUntil=now+950;lastInput=now;audio.play('hint');}
+  if(now-lastInput>8000&&!busy&&!pileShake.active&&!ended&&!taskIntroduction.active&&now>speechUntil){idleHint=visibleCandidate(basketMode||firstTriple?undefined:'camera');hintUntil=now+950;lastInput=now;audio.play('hint');}
   if(idleHint&&now<hintUntil&&!idleHint.removed){idleHint.root.rotateY(Math.sin((now-hintUntil)/90)*.035);}else idleHint=undefined;
   audio.update();
  }if(!paused&&!document.hidden)renderer.render(scene,camera);}

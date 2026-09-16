@@ -16,8 +16,10 @@ export class CompletionSequence {
  }
  async reveal(onCollect:()=>void){
   if(this.phase!=='idle')return;this.phase='reveal';this.game.classList.add('completing');
+  // Warm the reward only when it is needed, not during the opening download.
+  const backplate=new Image();backplate.src=assetBase+'art/game-v2/welcome-backplate-v3.webp';
   const host=document.createElement('div');host.id='completion-overlay';host.setAttribute('aria-live','polite');
-  host.innerHTML='<div class="completion-shade"></div><div class="completion-halo"><div class="completion-rays"></div></div><div class="completion-heading"><span>委托完成</span><h2>钱包和委托书，找到啦！</h2></div><div class="completion-prize"><img src="'+assetBase+'art/game-v2/wallet-commission.png" alt="已找到钱包和委托书"></div><p class="completion-caption">好好收起，一起开启新的故事</p>';
+  host.innerHTML='<div class="completion-shade"></div><div class="completion-halo"><div class="completion-rays"></div></div><div class="completion-heading"><span>委托完成</span><h2>钱包和委托书，找到啦！</h2></div><div class="completion-prize"><img src="'+assetBase+'art/game-v2/wallet-commission.webp" alt="已找到钱包和委托书"></div><p class="completion-caption">好好收起，一起开启新的故事</p>';
   this.game.append(host);this.confetti(host);
   const prize=host.querySelector<HTMLElement>('.completion-prize')!,rays=host.querySelector<HTMLElement>('.completion-rays')!;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,prizeCenter=elementCenter(this.game,prize),targetCenter=elementCenter(this.game,this.game.querySelector('#commission-thumb')!);
@@ -34,7 +36,7 @@ export class CompletionSequence {
  showReward(onRestart:()=>void,fallback=false){
   if(this.phase==='reward')return;this.phase='reward';this.game.dataset.ending='reward';
   const host=document.createElement('div');host.id='welcome-overlay';
-  host.innerHTML='<div class="welcome-aura" aria-hidden="true"><div class="welcome-rays"></div></div><section class="welcome-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title" tabindex="-1"><img class="welcome-backplate" src="'+assetBase+'art/game-v2/welcome-backplate-v3.png" alt="" draggable="false"><div class="welcome-content"><p class="welcome-congrats">第一份委托，圆满完成</p><h2 id="welcome-title">事务所经营权</h2><p class="welcome-intro">正式交给你啦，新任主理人！</p><div class="welcome-coins"><img src="'+assetBase+'home/coin.png" alt=""><div><span>开店启动金 · 已到账</span><strong>1,000 <small>游戏币</small></strong></div></div><div class="welcome-coupon"><div class="coupon-value"><small>¥</small>5</div><div><span>小白熊的见面礼</span><strong>信用购打车券</strong></div></div><p class="welcome-note">Demo 奖励展示 · 不发放真实优惠券</p><button class="welcome-home" type="button">开启我的小店</button><button class="welcome-replay" type="button">再演示一次</button>'+(fallback?'<p class="welcome-fallback">开门动画暂时未能播放，通关奖励展示不受影响。</p>':'')+'</div></section>';
+  host.innerHTML='<div class="welcome-aura" aria-hidden="true"><div class="welcome-rays"></div></div><section class="welcome-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title" tabindex="-1"><img class="welcome-backplate" src="'+assetBase+'art/game-v2/welcome-backplate-v3.webp" alt="" draggable="false"><div class="welcome-content"><p class="welcome-congrats">第一份委托，圆满完成</p><h2 id="welcome-title">事务所经营权</h2><p class="welcome-intro">正式交给你啦，新任主理人！</p><div class="welcome-coins"><img src="'+assetBase+'home/coin.png" alt=""><div><span>开店启动金 · 已到账</span><strong>1,000 <small>游戏币</small></strong></div></div><div class="welcome-coupon"><div class="coupon-value"><small>¥</small>5</div><div><span>小白熊的见面礼</span><strong>信用购打车券</strong></div></div><p class="welcome-note">Demo 奖励展示 · 不发放真实优惠券</p><button class="welcome-home" type="button">开启我的小店</button><button class="welcome-replay" type="button">再演示一次</button>'+(fallback?'<p class="welcome-fallback">开门动画暂时未能播放，通关奖励展示不受影响。</p>':'')+'</div></section>';
   this.game.append(host);this.confetti(host);
   const shopStatus=host.querySelector<HTMLElement>('.welcome-intro')!;
   shopStatus.setAttribute('role','status');shopStatus.setAttribute('aria-live','polite');

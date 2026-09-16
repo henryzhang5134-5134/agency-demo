@@ -10,11 +10,12 @@ export class GameAudio{
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(level,t+.015);g.gain.exponentialRampToValueAtTime(.0001,t+duration);
   o.connect(g).connect(c.destination);o.start(t);o.stop(t+duration+.03);
  }
- play(event:'pick'|'slot'|'match'|'hint'|'tap'|'key'|'drop'){
+ play(event:'pick'|'slot'|'match'|'hint'|'tap'|'key'|'drop'|'shake'){
   if(!this.sfx)return;
   if(event==='pick'){this.note(620,.06,.085);this.note(920,.022,.08,.018);}
   if(event==='slot')this.note(300,.035,.1);
   if(event==='drop'){[740,660,590,520,440,350].forEach((f,i)=>this.note(f,.02,.12,i*.105));}
+  if(event==='shake'){[280,350,300,420].forEach((f,i)=>this.note(f,.017,.09,i*.12,'triangle'));}
   if(event==='tap')this.note(440,.018,.065);
   if(event==='hint')this.note(760,.018,.19);
   if(event==='match'||event==='key'){[523.25,659.25,783.99,event==='key'?1046.5:987.77].forEach((f,i)=>this.note(f,.035,.23,i*.058));}

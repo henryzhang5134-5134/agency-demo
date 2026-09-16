@@ -16,7 +16,7 @@ export class TaskIntroduction {
   if(this.active)return;
   const generation=++this.generation,reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const host=document.createElement('div');host.id='task-introduction';host.setAttribute('role','status');host.setAttribute('aria-live','polite');
-  host.innerHTML='<div class="task-intro-shade"></div><section class="task-card"><img class="task-card-icon" src="'+assetBase+'art/game-v2/wallet-commission.png" alt="钱包里的委托书"><div class="task-card-copy"><span>新任务</span><h2>找到小白熊的钱包</h2><p>委托书就藏在里面</p></div></section>';
+  host.innerHTML='<div class="task-intro-shade"></div><section class="task-card"><img class="task-card-icon" src="'+assetBase+'art/game-v2/wallet-commission.webp" alt="钱包里的委托书"><div class="task-card-copy"><span>新任务</span><h2>找到小白熊的钱包</h2><p>委托书就藏在里面</p></div></section>';
   const card=host.querySelector<HTMLElement>('.task-card')!,shade=host.querySelector<HTMLElement>('.task-intro-shade')!,icon=host.querySelector<HTMLImageElement>('.task-card-icon')!;
   card.style.opacity='0';shade.style.opacity='0';this.host=host;this.game.append(host);this.game.classList.add('task-guiding');host.dataset.phase=this.phase='dialogue';
   const live=()=>generation===this.generation&&host.isConnected;
